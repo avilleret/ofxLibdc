@@ -280,28 +280,32 @@ namespace ofxLibdc {
                 
                 dc1394framerates_t frameRates;
                 dc1394framerate_t selectedFrameRate;
-                dc1394_video_get_supported_framerates(camera, videoMode, &frameRates);
-                for(int i = 0; i < frameRates.num; i++) {
-                    ofLogVerbose() << "Available framerate: " << makeString(frameRates.framerates[i]);
-                }
-                if(frameRate == 0) {
-                    selectedFrameRate = frameRates.framerates[frameRates.num - 1];
+                dc1394error_t err = dc1394_video_get_supported_framerates(camera, videoMode, &frameRates);
+                if (err == DC1394_SUCCESS){
+                  for(int i = 0; i < frameRates.num; i++) {
+                      ofLogVerbose() << "Available framerate: " << makeString(frameRates.framerates[i]);
+                  }
+                  if(frameRate == 0) {
+                      selectedFrameRate = frameRates.framerates[frameRates.num - 1];
+                  } else {
+                      float bestDistance;
+                      for(int i = 0; i < frameRates.num; i++) {
+                          float curDistance = abs(frameRate - makeFloat(frameRates.framerates[i]));
+                          if(i == 0 || curDistance < bestDistance) {
+                              bestDistance = curDistance;
+                              selectedFrameRate = frameRates.framerates[i];
+                          }
+                      }
+                      if(bestDistance != 0) {
+                          ofLogWarning() << "Using framerate " << makeFloat(selectedFrameRate) << " instead of " << frameRate;
+                          frameRate = makeFloat(selectedFrameRate);
+                      }
+                  }
+                  dc1394_video_set_framerate(camera, selectedFrameRate);
+                  ofLogVerbose() <<  "Using mode: " <<  width << "x" << height << makeString(selectedFrameRate) << "fps";
                 } else {
-                    float bestDistance;
-                    for(int i = 0; i < frameRates.num; i++) {
-                        float curDistance = abs(frameRate - makeFloat(frameRates.framerates[i]));
-                        if(i == 0 || curDistance < bestDistance) {
-                            bestDistance = curDistance;
-                            selectedFrameRate = frameRates.framerates[i];
-                        }
-                    }
-                    if(bestDistance != 0) {
-                        ofLogWarning() << "Using framerate " << makeFloat(selectedFrameRate) << " instead of " << frameRate;
-                        frameRate = makeFloat(selectedFrameRate);
-                    }
+                  ofLogError("ofxLibdc") << "error when trying to get framerate list";
                 }
-                dc1394_video_set_framerate(camera, selectedFrameRate);
-                ofLogVerbose() <<  "Using mode: " <<  width << "x" << height << makeString(selectedFrameRate) << "fps";
             }
         }
 				
